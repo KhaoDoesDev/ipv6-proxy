@@ -13,6 +13,29 @@ function randomIPv6() {
 const server = http.createServer();
 
 server.on("connect", async (req, clientSocket) => {
+  if (env.USERNAME && env.PASSWORD) {
+    const auth = req.headers["proxy-authorization"];
+
+    if (!auth || !auth.startsWith("Basic ")) {
+      clientSocket.write(
+        "HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"Proxy\"\r\n\r\n"
+      );
+      return clientSocket.destroy();
+    }
+
+    const base64 = auth.split(" ")[1]!;
+    const [username, password] = Buffer.from(base64, "base64")
+      .toString()
+      .split(":");
+
+    if (username !== env.USERNAME || password !== env.PASSWORD) {
+      clientSocket.write(
+        "HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"Proxy\"\r\n\r\n"
+      );
+      return clientSocket.destroy();
+    }
+  }
+
   const [host, port] = req.url!.split(":");
   const ip = randomIPv6();
 
