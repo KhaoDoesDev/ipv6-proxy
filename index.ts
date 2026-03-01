@@ -6,7 +6,7 @@ import { $, env } from "bun";
 const PORT = env.PORT || 8080;
 
 function randomIPv6() {
-  const parts = randomBytes(8).toString("hex").match(/.{1,4}/g)!;
+  const parts = randomBytes(10).toString("hex").match(/.{1,4}/g)!;
   return `${env.IPV6_PREFIX}:${parts.join(":")}`;
 }
 
@@ -52,12 +52,21 @@ server.on("connect", async (req, clientSocket) => {
     serverSocket.pipe(clientSocket);
     clientSocket.pipe(serverSocket);
 
-    const cleanup = () => {
-      $`ip -6 addr del ${ip}/128 dev ${env.INTERFACE}`.catch(() => {});
+    let cleaned = false;
+
+    const cleanup = async () => {
+      if (cleaned) return;
+      cleaned = true;
+
       serverSocket.destroy();
+      clientSocket.destroy();
+
+      await $`ip -6 addr del ${ip}/128 dev ${env.INTERFACE}`.quiet();
     };
     clientSocket.on("close", cleanup);
     serverSocket.on("close", cleanup);
+    serverSocket.on("error", cleanup);
+    clientSocket.on("error", cleanup);
   } catch (err) {
     clientSocket.destroy();
   }
