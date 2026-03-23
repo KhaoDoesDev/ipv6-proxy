@@ -40,7 +40,7 @@ server.on("connect", async (req, clientSocket) => {
   const ip = randomIPv6();
 
   try {
-    await $`ip -6 addr add ${ip}/128 dev ${env.INTERFACE}`;
+    await $`ip -6 addr add ${ip}/128 dev ${env.INTERFACE}`.quiet().catch(() => {});;
     console.log("Using IPv6:", ip);
     const serverSocket = net.connect({
       host,
@@ -61,7 +61,7 @@ server.on("connect", async (req, clientSocket) => {
       serverSocket.destroy();
       clientSocket.destroy();
 
-      await $`ip -6 addr del ${ip}/128 dev ${env.INTERFACE}`.quiet();
+      await $`ip -6 addr del ${ip}/128 dev ${env.INTERFACE}`.quiet().catch(() => {});;
     };
     clientSocket.on("close", cleanup);
     serverSocket.on("close", cleanup);
